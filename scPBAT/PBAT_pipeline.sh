@@ -1,7 +1,5 @@
 #!/bin/sh
 
-#!/bin/sh
-
 ############################################
 ### PBAT Pipeline                        ###
 ### Author: Xiaohui Xue                  ###
