@@ -30,23 +30,25 @@ This pipeline analyzes molecular differences between embryonic cell lineages und
 ## Repository Structure
 
 ```
-├── README.md                      # Project documentation
-├── analysis/                      # Analysis results and log
-│   ├── scTrio-seq2.pdf            # Analysis log for main results
-│   ├── DNA_methylome/             # DNA methylation analysis results
-│   │   ├── scripts/               # Scripts for raw data processing
-│   │   └── scTrio_DNA.R           # Data preprocess and visualization
-│   └── RNA_transcriptome/         # RNA transcriptome analysis results
-│       ├── scripts/               # Scripts for raw data processing
-│       ├── s01.Preprocess.R       # Data preprocessing
+├── README.md                          # Project documentation
+├── analysis/                          # Analysis results and log
+│   ├── scTrio-seq2.pdf                # Analysis log for main results
+│   ├── DNA_methylome/                 # DNA methylation analysis results
+│   │   ├── scripts/                   # Scripts for raw data processing
+│   │   └── scTrio_DNA.R               # Data preprocess and visualization
+│   └── RNA_transcriptome/             # RNA transcriptome analysis results
+│       ├── scripts/                   # Scripts for raw data processing
+│       ├── s01.Preprocess.R           # Data preprocessing
 │       ├── s02.Comparative_analysis.R # Comparative analysis
-│       └── s03.inferCNV.R         # Copy number variation inference
-├── metadata/                      # Sample metadata and information
+│       └── s03.inferCNV.R             # Copy number variation inference
+├── metadata/                          # Sample metadata and information
 │   ├── Blasts_metainfo.xlsx
 │   ├── HRA001110_updata.xlsx
 │   ├── metadata.txt
-│   └── SampleInfo.txt
-└── public/                        # Reference datasets
+│   ├── collide_cells.txt
+│   ├── MRT_RNA.CellsPass_info.txt
+│   └── MRT_Meth.CellsPass_info.txt
+└── public/                            # Reference datasets
     ├── known_imprinted_DMR.txt
     ├── X_linked_genelist.txt
     └── Y_linked_genelist.txt
@@ -57,6 +59,8 @@ This pipeline analyzes molecular differences between embryonic cell lineages und
 - **Raw Sequencing Data**: Available at GSA for Human under accession [HRA001110](https://ngdc.cncb.ac.cn/gsa-human/browse/HRA001110)
 - **Processed Data**: Available at Zenodo under repository [17396971](10.5281/zenodo.17396971)
 - **Reference Datasets**: Included in [`public/`](public/) directory
+
+**Note**: Some single cells in raw sequencing data in GSA somehow encounter barcode collision. In case of confusion, exclude cells listed in [`metadata/collide_cells.txt`](metadata/collide_cells.txt). Otherwise, please reach out to expression matrices in Zenodo.
 
 ## System Requirements
 
