@@ -1,0 +1,148 @@
+#!/bin/sh
+
+if [ -z $RNA_PIPELINE ];then
+	RNA_PIPELINE=/gpfs1/tangfuchou_pkuhpc/Pipeline/02.scRNAseq_ljs
+fi
+if [ $# == 0 ];then
+	cat ${RNA_PIPELINE}/README
+fi
+
+#####Get parameters#####
+ARGV=`getopt -o hmn:p:u:l: -l human,mouse,nMaxMultimap,help,partition,user,list -- "$@"`
+#echo $ARGV
+eval set -- "$ARGV"
+while true
+do
+case "$1" in
+    -h|--human)
+        species="human"
+        Nmax=1
+	shift
+        ;;
+    -m|--mouse)
+	species="mouse"
+	Nmax=5
+	shift
+	;;
+    -n|--nMaxMultimap)
+        Nmax=$2
+        shift 2
+        ;;
+    -p|--partition)
+	qos=$2
+	if [ $qos == "cnl" ];then
+		part="cn-long"
+	elif [ $qos == "cns" ];then
+		part="cn-short"
+	elif [ $qos == "cnnl" ];then
+		part="cn_nl"
+	else
+		qos="cnl"
+		part="cn-long"
+		echo "Couldn't detect available PARTITION name, will run pipeline in cn-long"
+	fi
+	shift 2
+	;;
+    -u|--user)
+	User=$2
+	shift 2
+	;;
+    -l|--list)
+	sample=$2
+	shift 2
+	;;
+    --help)
+	cat ${RNA_PIPELINE}/README
+	exit 1
+	;;
+    --)
+	break
+	;;
+    *)
+        echo " Unkonwn parameters:"$1""
+	;;
+esac
+done
+
+if [ ! $species ];then
+        echo "Species is required ! Use --help to print help page."
+        exit 1
+fi
+
+if [ ! $User ];then
+	echo "User name is reqiured !"
+	exit 1
+fi
+
+echo "User = $User"
+echo "Species = $species"
+echo "Max multimap number = $Nmax"
+
+if [ ! $sample ];then
+	if [ -s sample.xls ];then
+		sample="sample.xls"
+	else
+		echo "Sample list is not found or it's empty!"
+		exit 1
+	fi
+fi
+
+echo "Samples to be processed:"
+cat $sample
+
+if [ ! $qos ];then
+        qos="cnl"
+        part="cn-long"
+fi
+
+echo "Pipeline will be run in $part"
+
+#####Create Working Scripts#####
+for i in `cat $sample`
+do
+	echo "pkubatch \\
+	-J ${User}_S01.scRNA_work_$i \\
+	-p $part \\
+	-A tangfuchou_g1 \\
+	-c 2 \\
+	--qos=tangfuchou${qos} \\
+	-o S01.work.out \\
+	-e S01.work.error \\
+	${RNA_PIPELINE}/S01.scRNA_UMI_QC.sh \\
+	$i $species \\
+	o>01.jobid" > $i/S01.work.sh
+
+	cd $i && sh S01.work.sh && cd ..
+
+	JOB_ID1=`cat $i/01.jobid | awk '{print $4}'`
+	echo "pkubatch \\
+	-J ${User}_S02.scRNA_work_$i \\
+	-p $part \\
+        -A tangfuchou_g1 \\
+        -c 10 \\
+        --qos=tangfuchou${qos} \\
+        -o S02.work.out \\
+        -e S02.work.error \\
+	--dependency=afterok:${JOB_ID1} \\
+	${RNA_PIPELINE}/S02.scRNA_UMI_STAR.sh \\
+	$i $species $Nmax \\
+	o>02.jobid" > $i/S02.work.sh
+
+	cd $i && sh S02.work.sh && cd ..
+
+	JOB_ID2=`cat $i/02.jobid | awk '{print $4}'`
+	echo "pkubatch \\
+        -J ${User}_S03.scRNA_work_$i \\
+        -p $part \\
+        -A tangfuchou_g1 \\
+        -c 2 \\
+        --qos=tangfuchou${qos} \\
+        -o S03.work.out \\
+        -e S03.work.error \\
+	--dependency=afterok:${JOB_ID2} \\
+	${RNA_PIPELINE}/S03.scRNA_UMI_UMI.sh \\
+	$i $species \\
+	o>03.jobid" > $i/S03.work.sh
+	
+	cd $i && sh S03.work.sh && cd ..
+done

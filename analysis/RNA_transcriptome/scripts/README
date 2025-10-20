@@ -1,0 +1,51 @@
+################################################
+### Tanglab Single-Cell RNA-Seq New Pipeline ###
+### Origin Author: Zorro Dong                ###
+### Date: 2018-07-25                         ###
+### Modified by Jiansen Lu                   ###
+### Date: 2019-09-18                         ###
+################################################
+
+[ Introduction ]
+    This is a pipeline to process raw fastq data to generate RNA Expression Matrices.
+    
+[ Data preparation ]
+    To use this pipeline, you should provide pair-ended, compressed fastq sequencing files. And you should place each pair of your pair-end compressed fastq files into a fold named with the base name of fastq files.
+    For example:
+	Sample1/
+	Sample1_R1.fastq.gz
+	Sample1_R2.fastq.gz
+    or:
+	Sample2/
+	Sample2_1.fq.gz
+	Sample2_2.fq.gz
+
+[ Add environment variable ]
+    Seccondly, export your path of this pipeline directory as RNA_PIPELINE environment variable to you ~/.bashrc file, e.g:
+	echo "export RNA_PIPELINE=/gpfs1/tangfuchou_pkuhpc/Pipeline/02.scRNAseq_ljs/scRNA_seq" >> ~/.bashrc
+	echo "export PATH=/gpfs1/tangfuchou_pkuhpc/Pipeline/02.scRNAseq_ljs/scRNA_seq:$PATH" >> ~/.bashrc
+
+[ USAGE ]
+	Human: scRNA_work -h -u [Username] [OPTIONS]
+	Mouse: scRNA_work -m -u [Username] [OPTIONS]
+
+[ OPTIONS ]
+	--help		Show help documentation.
+	-h,--human	Set the species to human. Reads will be mapped to GRCh38 reference genome.
+	-l,--list [Name of list]	Set tha name of sample list, default is sample.xls.
+	-m,--mouse	Set the species to mouse. Reads will be mapped to mm10 reference genome.
+	-n,--nMaxMultimap [int]	Set the max multimapping threshold. Defalt 1 in human; 5 in mouse.
+	-p,--partition	[cn-long/cn-short/cn_nl]	Set the partition you run this pipeline. Default is cn-long. You can choose partition depending on your file system.
+	Details:
+	-------------------------------------------
+	PARTITION	|	FILE SYSTEM
+	cn-long		|	lustre1/2/3 gpfs1/2
+	cn-short	|	lustre1/2/3
+	cn_nl		|	lustre2/3
+	-------------------------------------------
+	-u,--user [Username]	Set the user name. (Necessary)
+
+[ CONFIGURATION ]
+	If you want to change the database and softwares used in this pipeline, modifiy the configuration file human_config or mouse_config in the pipeline directory.
+
+
