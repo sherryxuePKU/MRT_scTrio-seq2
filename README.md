@@ -25,7 +25,7 @@ This pipeline analyzes molecular differences between embryonic cell lineages und
 - **Embryonic cell lineages**: epiblast (EPI), primitive endoderm (PE), trophectoderm (TE)
 - **Treatment conditions**: Intracytoplasmic Sperm Injection (ICSI), Spindle Transfer (ST)
 
-![Workflow](workflow.tif)
+![Workflow](workflow-01.png)
 
 ## Repository Structure
 
