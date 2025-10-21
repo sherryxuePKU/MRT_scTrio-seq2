@@ -5,18 +5,25 @@ library(data.table)
 library(ggtern)
 library(ComplexHeatmap)
 library(circlize)
+library(cowplot)
+library(ggpubr)
+library(scales)
+library(ggridges)
+library(reshape2)
+library(dplyr)
 
 ## check packages' version
 packageVersion("Seurat")
 
-##-------------------------other parameter-------------------------
-min_gene_num <- 4000
+##-------------------------hyperparameter-------------------------
+MIN_GENE_NUM <- 4000
 
 ##-------------------------state paths-------------------------
-plot_outdir <- "F:/Project/3P/plot/MRT"
-seurat_dir <- paste0(plot_outdir, "_", min_gene_num, ".seurat.rda")
-info_dir <- paste0(plot_outdir, "Meth_Total_SampleInfo.txt")
-load(seurat_dir)
+input_dir <- "/path/to/your/data/"  # specify your input path
+plot_outdir <- "/path/to/your/plot/"  # specify your output path
+seurat_dir <- paste0(input_dir, "seurat/MRT_", MIN_GENE_NUM, ".seurat.rda")
+info_dir <- paste0(input_dir, "metadata/MRT_Meth.CellsPass_info.txt")
+color_dir <- paste0(input_dir, "metadata/colors.rda")
 
 ##-------------------------marker list-------------------------
 TE_marker <- c("GATA3", "DAB2", "TFAP2C", "GATA2","CDX2","PTGES",
@@ -26,180 +33,8 @@ PE_marker <- c("PDGFRA", "GATA4", "FOXA2","HNF1B", "COL4A1",  "FN1",
 EPI_marker <- c("SOX2",  "NANOG", "TDGF1","GDF3", "PRDM14",
                 "NODAL","ARGFX", "DPPA2", "POU5F1")
 
-##-------------------------define function-------------------------
-merge_count_func <- function(indir, outdir, save_res=T){
-  umilist <- list()
-  fileName <- dir(indir)
-  for (i in 1:length(fileName)) {
-    umilist[[i]] <- fread(paste0(indir, fileName[i]), 
-                          header = T, 
-                          row.names = 1, 
-                          stringsAsFactors = F)
-  }
-  umi_count <- do.call("cbind", umilist)
-  if(save_res){
-    write.table(umi_count, 
-                file = outdir, 
-                quote = F, sep = "\t", 
-                col.names = T, row.names = T)
-  }
-  return(umi_count)
-}
-
-seurat_pipeline <- function(umi_count_dir=count_dir, 
-                            info_dir=infodir, project="MRT", 
-                            min_cell=3, min_gene=min_gene_num,
-                            save.obj=T, save_path=save_seurat_dir){
-  set.seed(0)
-  data <- read.table(umi_count_dir,header = T, stringsAsFactors = F)
-  info <- fread(info_dir, header = T, stringsAsFactors = F)
-  info <- as.data.frame(info)
-  rownames(info) <- info$Cell_id
-  cell_vector <- intersect(info$Cell_id, colnames(data))
-  ST.seurat <- CreateSeuratObject(counts = data[,cell_vector], min.cells = min_cell, min.features = min_gene, project = project)
-  ST.seurat[["percent.mt"]]  <- PercentageFeatureSet(ST.seurat, pattern = "^MT-")
-  ST.seurat[["ID"]] <- info[colnames(ST.seurat), "ID"]
-  ST.seurat[["Cell_id"]] <- rownames(ST.seurat@meta.data)
-  ST.seurat[["Embryo"]] <- info[colnames(ST.seurat),"Embryo"]
-  ST.seurat[["Grade"]] <- info[colnames(ST.seurat), "Grade"]
-  ST.seurat[["Day"]] <- info[colnames(ST.seurat), "Day"]
-  ST.seurat[["Batch"]] <- info[colnames(ST.seurat),"Batch"]
-  ST.seurat[["Group"]] <- info[colnames(ST.seurat),"Group"]
-  ST.seurat[["Index"]] <- info[colnames(ST.seurat), "Index"]
-  ST.seurat[["Lineage"]] <- info[colnames(ST.seurat), "Lineage"]
-  if(save.obj){
-    if(is.null(save_path)){
-      print("Please specify path to save!")
-    } else {
-      save(ST.seurat, file = save_path)
-    }
-  }
-  return(ST.seurat)
-}
-
-myfeature_plot <- function(ST.seurat,markers,
-                           min_expr=2,max_expr=4, 
-                           col =c("lightgrey", "red"),
-                           plot_dir="E:/OneDrive/3P/data/plot/"){
-  mytheme <- theme_minimal()+theme(axis.ticks = element_blank(),
-                                   axis.text = element_blank(),
-                                   axis.title = element_blank(),
-                                   panel.border = element_blank(),
-                                   legend.key.size=unit(0.75,'cm'),
-                                   legend.text = element_text(size = 15),
-                                   legend.title = element_text(size = 20),
-                                   legend.position = "none", 
-                                   panel.grid = element_blank(),
-                                   plot.title = element_text(hjust = 0.5, size = 25, face = "italic"))
-  reduction_method <- "tsne"
-  dim1 <- "tSNE_1"
-  dim2 <- "tSNE_2"
-  dim_used <- 1:2
-  
-  for (mk in markers) {
-    coor_ratio <- (range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim1])[2] -
-                     range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim1])[1])/
-      (range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim2])[2] - 
-         range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim2])[1])
-    
-    p <- FeaturePlot(ST.seurat, 
-                     features = mk,cols = col, 
-                     reduction = reduction_method,
-                     order = T, dims = dim_used,
-                     min.cutoff = min_expr,
-                     max.cutoff = max_expr,
-                     pt.size = 1.5)+
-      coord_fixed(ratio = coor_ratio)+
-      mytheme
-    # print(p)
-    return(p)
-  }
-}
-
-plot_lineage_ternary_func <- function(ST.seurat=ST.seurat,
-                                      marker_dir,lineage=c("EPI", "PE", "TE"),
-                                      group_by="Lineage",
-                                      cols=MRT_colorlist[["Lineage_col"]]){
-  Lineage_Marker <- read.table(marker_dir, header = T, stringsAsFactors = F)
-  Lineage_Marker <- Lineage_Marker[,c("gene", "cluster")]
-  colnames(Lineage_Marker) <- c("Gene_id", "Lineage")
-  ggtern_df <- as.data.frame(t(FetchData(object = ST.seurat, slot = "data",
-                                         vars = rownames(ST.seurat))))
-  tmp <- list()
-  for (i in c("EPI", "PE", "TE")) {
-    tmp[[i]] <- colMeans(ggtern_df[Lineage_Marker[Lineage_Marker$Lineage==i,"Gene_id"],], 
-                         na.rm = T)
-  }
-  Ternary_df <- as.data.frame(t(do.call("rbind", tmp)))
-  Ternary_df$Var <- ST.seurat@meta.data[rownames(Ternary_df),group_by]
-  
-  ggtern(data=Ternary_df,aes(EPI,TE,PE, color=Var))+
-    geom_point(size=1)+
-    scale_color_manual(values = MRT_colorlist$Lineage_col)+
-    theme_custom(col.T = cols["TE"], col.L = cols["EPI"],
-                 col.R = cols["PE"],col.grid.minor = "grey90",
-                 tern.panel.background = "white")+
-    theme(legend.position = "right",
-          legend.key = element_blank(),
-          legend.title = element_blank())
-  
-}
-
-calc_coord_ratio <- function(reduction_method="pca",dim=c(1,2),seurat.obj){
-  ST.seurat <- seurat.obj
-  #reduction_method <- "pca"
-  if(reduction_method=="umap"){
-    dim1 <- "UMAP_1"
-    dim2 <- "UMAP_2"
-  } else if(reduction_method=="tsne"){
-    dim1 <- "tSNE_1"
-    dim2 <- "tSNE_2"
-  }else if(reduction_method=="pca"){
-    dim1 <- paste0("PC_", dim[1])
-    dim2 <- paste0("PC_", dim[2])
-  }
-  coor_ratio <- (range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim1])[2] -
-                   range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim1])[1])/
-    (range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim2])[2] - 
-       range(ST.seurat@reductions[[reduction_method]]@cell.embeddings[,dim2])[1])
-  return(coor_ratio)
-}
-
-circos_hclust <- function(info, hclust.out,levels= c("Group", "Lineage"), col_list){
-  
-  cir_df <- info[hclust.out$tree_col$labels[hclust.out$tree_col$order],levels]
-  N <- length(levels)
-  for(i in 1:N){
-    t <- names(table(cir_df[,levels[i]]))
-    M <- length(t)
-    col_name <- paste0(levels[i], "_col")
-    cir_df[,col_name] <- "white"
-    for (j in 1:M) {
-      cir_df[cir_df[,levels[i]]==t[j], col_name] <- col_list[[col_name]][t[j]]
-    }
-  }
-  
-  nc <- dim(cir_df)[1]
-  
-  dend  <- as.dendrogram(hclust.out$tree_col)
-  dend_height  <- attr(dend, "height")
-  circos.par(cell.padding = c(0, 0, 0, 0), gap.degree = 0, start.degree = 0)
-  circos.initialize("a", xlim = c(0,nc))
-  circos.track(ylim = c(0, N), bg.border = NA,
-               panel.fun = function(x, y) {
-                 for (i in 1:N) {
-                   circos.rect(1:nc-1, rep(N-i, nc),1:nc, rep(N-i+1, nc),
-                               border = cir_df[,N+i],col = cir_df[,N+i])
-                 }
-               }
-  )
-  circos.track(ylim = c(0, dend_height), bg.border = NA, 
-               track.height = 0.4, panel.fun = function(x, y) {circos.dendrogram(dend)})
-  circos.clear()
-}
-
 ##-------------------------load colorlist-------------------------
-load("F:/Project/3P/R_workspace/colors.rda")
+load(color_dir)
 MRT_colorlist$Group_col["ST"] <- "#f5bd2a"
 MRT_colorlist$Group_col["ICSI"] <- "#704d9c"
 
@@ -215,6 +50,7 @@ info_df<- info_df[
 detach()
 
 ##-------------------------fig.3.a------------------------
+load(seurat_dir)
 meth.seurat <- subset(ST.seurat, subset = ID %in% info_df$Sample)
 meth.seurat <-NormalizeData(meth.seurat, normalization.method = "LogNormalize", scale.factor = 1e+5, verbose = F)
 meth.seurat <-FindVariableFeatures(meth.seurat, selection.method = "vst")
@@ -241,12 +77,10 @@ for (i in c("Group", "Lineage")) {
   plot_list[[i]] <- p + coord_equal(ratio = diff(range(p$data$tSNE_1))/diff(range(p$data$tSNE_2)))
 }
 
-library(cowplot)
+
 do.call("plot_grid", plot_list)
 
 ##-------------------------fig.3.b------------------------
-library(ggpubr)
-
 group_var <- "Lineage"
 output_type <- "Ratio"
 
@@ -285,9 +119,6 @@ for(j in c("CpG","CHH", "CHG")){
 
 do.call("plot_grid", c(plot_list, ncol=3))
 ##-------------------------fig.3.e------------------------
-library(scales)
-library(ggridges)
-
 ## load ref info
 ref_info <- read.table("F:/Project/3P/data/REF/2017_NG/2017_NG_StatInfo.txt", 
                        header = T, stringsAsFactors = F)
@@ -322,8 +153,6 @@ ggplot(data = pca_input[pca_input$Embryo !="E15",],
   theme_bw(base_size = 20)+
   theme(axis.title.y = element_blank(),
         legend.position = "none")
-
-
 
 ##-------------------------sup.fig.2.b------------------------
 meth_summary <- function(x, cells,group, type="ratio", C_type="CpG"){
@@ -410,10 +239,8 @@ for (i in c("CpG","CHH","CHG")) {
 do.call("plot_grid", c(plot_list, nrow=1))
 
 ##-------------------------sup.fig.2.f------------------------
-library(reshape2)
-
 anno_list <- list()
-indir <- "F:/Project/3P/data/DNA/CpG_site_anno/"
+indir <- "/path/to/your/CpG_site_anno/"
 for(i in dir(indir)){
   fileName <- paste0(indir, i)
   anno_list[[i]] <- read.table(fileName,header = T, stringsAsFactors = F)
@@ -443,8 +270,8 @@ anno_long$variable <- factor(
              "ERV1", "ERVK", "ERVL.MaLR","ERVL")
 )
 
-library(ggpubr)
-library(RColorBrewer)
+require(ggpubr)
+require(RColorBrewer)
 # pdf("DNA_element_Group_Lineage.pdf", height = 10, width = 15)
 ggboxplot(
   anno_long, 
@@ -467,6 +294,7 @@ ggboxplot(
         axis.title.x = element_blank(),
         axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 # dev.off()
+
 ##-------------------------sup.fig.3.4------------------------
 ## prepare input of profile plot
 # region  <- "genebody"
@@ -477,22 +305,9 @@ for (region in c("genebody", "CGI")) {
   if(region=="genebody"){
     x_label <- c("-15kb","TSS", "TES", "+15kb")
   }
-  # genebody_meth_list <- list()
-  # indir <- paste0("F:/Project/3P/data/DNA/",region, "_profile_mtx/")
-  # for(i in dir(indir)){
-  #   fileName <- paste0(indir, i)
-  #   genebody_meth_list[[i]] <- read.table(fileName,header = T, stringsAsFactors = F)
-  # }
-  # genebody_meth_merge_df<- do.call("rbind", genebody_meth_list)
-  # rownames(genebody_meth_merge_df) <- 1:nrow(genebody_meth_merge_df)
-  # write.table(
-  #   genebody_meth_merge_df,
-  #   file = paste0("F:/Project/3P/plot/MRT_4000.",region, "_meth_merge.txt"),
-  #   col.names = T, row.names = F, quote = F, sep = "\t"
-  # )
   
   genebody_meth_merge_df <- read.table(
-    paste0("F:/Project/3P/plot/MRT_4000.",region, "_meth_merge.txt"), 
+    paste0("/path/to/your/MRT_", MIN_GENE_NUM, ".",region, "_meth_merge.txt"), 
     header = T, stringsAsFactors = F
   )
   info_tmp <- info_df[,c("Sample", "Group", "Lineage", "Embryo", "Stage", "lambda_percent")]
@@ -522,9 +337,8 @@ for (region in c("genebody", "CGI")) {
     # dev.off()
   }
 }
-##-------------------------fig.4.f------------------------
-library(dplyr)
 
+##-------------------------fig.4.f------------------------
 genebody_meth_group <- genebody_meth_merge_df %>% 
   select(c("data", "Coord", "Group")) %>% 
   group_by(Group, Coord) %>%
@@ -555,10 +369,8 @@ ggplot(data = genebody_meth_group,aes(x=Coord))+
         #strip.text = element_text(size = 15),
         plot.title = element_text(vjust = 1, hjust = .5))
 
-
-
 ##-------------------------fig.4.d------------------------
-DMR_dir <- "F:/Project//3P/data/DNA/Meth/DMR/data/noCNV/"
+DMR_dir <- "/path/to/your/DMRs/"
 regions <- c("CGI","HCP", "ICP", "LCP", 
              "Exon", "Intron","Intergenic", "Intragenic",
              "LINE", "LTR", "L1", "L2",
@@ -602,12 +414,7 @@ DMR_summary$Lineage <- sapply(strsplit(rownames(DMR_summary), "[.]"), "[[", 1)
 DMR_summary$Lineage <- factor(DMR_summary$Lineage, levels = c("TE", "EPI", "PE"))
 DMR_summary$Element <- sapply(strsplit(rownames(DMR_summary), "[.]"), "[[", 2)
 DMR_summary$Element <- factor(DMR_summary$Element, 
-                              levels = c("CGI","gene","promoter_gene", "HCP", "ICP", "LCP", 
-                                          "Exon", "Intron","Intergenic", "Intragenic",
-                                          "LINE", "LTR", "L1", "L2",
-                                          "SINE", "SVA", "MIR", "ALR", "Alu",
-                                          "ERV1", "ERVK", "ERVL-MaLR","ERVL"
-                                         )
+                              levels = regions[-c(19,20)]
                               )
 
 ggplot(data = DMR_summary, aes(x=Element, y=Freq, fill=Lineage))+
@@ -622,22 +429,7 @@ ggplot(data = DMR_summary, aes(x=Element, y=Freq, fill=Lineage))+
 }
 
 ##-------------------------sup.fig.5.b------------------------
-# indir <- "F:/Project/3P/data/DNA/CNV/data/1M/"
-# fileNames <- dir(indir)
-# fileNames <- fileNames[grep("read", fileNames)]
-# data_list <- list()
-# for(i in fileNames){
-#   data_list[[i]] <- read.table(file = paste0(indir,i), header = T, stringsAsFactors = F)
-#   colnames(data_list[[i]]) <- gsub("E34_D7_ST", "E34_D7_Allo_ST", colnames(data_list[[i]]))
-#   colnames(data_list[[i]]) <- gsub("E35_D7_ST", "E35_D7_Allo_ST", colnames(data_list[[i]]))
-# }
-# 
-# library(purrr)
-# merge2 <- function(x,y)base::merge(x,y,by=c("Chr", "Start"))
-# data <- data_list %>% purrr::reduce(merge2)
-# write.table(data, file = "F:/Project/3P/data/DNA/CNV/data/MRT.PBAT_FreeC_read.merge.txt", 
-#             col.names = T, row.names = F, sep = "\t", quote = F)
-data <- read.table("F:/Project/3P/data/DNA/CNV/data/MRT.PBAT_FreeC_read.merge.txt",
+data <- read.table("/path/to/your/MRT.PBAT_FreeC_read.merge.txt",
                    header = T, stringsAsFactors = F)
 data <- data[,c("Chr", "Start", merge_df$Sample)]
 

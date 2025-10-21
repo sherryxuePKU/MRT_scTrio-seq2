@@ -1,4 +1,4 @@
-## load packages
+##-------------------------load package-------------------------
 library(Seurat)
 library(ggplot2)
 library(ggrepel)
@@ -13,57 +13,26 @@ library(pheatmap)
 ## check packages' version
 packageVersion("Seurat")
 
-## state paths
-save_seurat_dir <- paste0("F:/Project/3P/R_workspace/ST_", Sys.Date(), "_seurat.rda")
-plot_outdir <- "F:/Project/3P/plot/"
+##-------------------------state paths-------------------------
+save_seurat_dir <- paste0("/path/to/your/ST_", Sys.Date(), "_seurat.rda")
+plot_outdir <- "/path/to/your/plot/"
 
-## define function
-circos_hclust <- function(info, hclust.out,levels= c("Group", "Lineage"), col_list){
-  
-  cir_df <- info[hclust.out$tree_col$labels[hclust.out$tree_col$order],levels]
-  N <- length(levels)
-  for(i in 1:N){
-    t <- names(table(cir_df[,levels[i]]))
-    M <- length(t)
-    col_name <- paste0(levels[i], "_col")
-    cir_df[,col_name] <- "white"
-    for (j in 1:M) {
-      cir_df[cir_df[,levels[i]]==t[j], col_name] <- col_list[[col_name]][t[j]]
-    }
-  }
-  
-  nc <- dim(cir_df)[1]
-  
-  dend  <- as.dendrogram(hclust.out$tree_col)
-  dend_height  <- attr(dend, "height")
-  circos.par(cell.padding = c(0, 0, 0, 0), gap.degree = 0, start.degree = 0)
-  circos.initialize("a", xlim = c(0,nc))
-  circos.track(ylim = c(0, N), bg.border = NA,
-               panel.fun = function(x, y) {
-                 for (i in 1:N) {
-                   circos.rect(1:nc-1, rep(N-i, nc),1:nc, rep(N-i+1, nc),
-                               border = cir_df[,N+i],col = cir_df[,N+i])
-                 }
-               }
-  )
-  circos.track(ylim = c(0, dend_height), bg.border = NA, 
-               track.height = 0.4, panel.fun = function(x, y) {circos.dendrogram(dend)})
-  circos.clear()
-}
+##-------------------------hyperparameters-------------------------
+MIN_GENE_NUM <- 4000
 
-## load input
+##-------------------------define function-------------------------
+source("analysis/RNA_transcriptome/helper_function.R")
+
+##-------------------------load input-------------------------
 load(save_seurat_dir)
-X_linked_genelist <- read.table("F:/Project/3P/reference/X_linked_genelist.txt", 
+X_linked_genelist <- read.table("/path/to/your/X_linked_genelist.txt", 
                                 header = T, stringsAsFactors = F)
-Y_linked_genelist <- read.table("F:/Project/3P/reference/data/Y_linked_genelist.txt", 
+Y_linked_genelist <- read.table("/path/to/your/Y_linked_genelist.txt", 
                                 header = T, stringsAsFactors = F)
 
-## other parameter
-min_gene_num <- 4000
-
-## sup.fig.2.a
+##-------------------------sup.fig.2.a-------------------------
 ## volcano plot
-pdf(paste0(plot_outdir, "MRT_", min_gene_num, ".DEG_volcano.pdf"), width = 7,height = 7)
+pdf(paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".DEG_volcano.pdf"), width = 7,height = 7)
 for(lineage in c("TE", "EPI", "PE")){
   #gender <- "Female"
   for(gender in c("", "Female","Male")){
@@ -79,7 +48,7 @@ for(lineage in c("TE", "EPI", "PE")){
     group_deg <- FindMarkers(ST.seurat[,cell_vector], 
                              ident.1 = "ST",ident.2 = "ICSI", 
                              min.pct = 0.25, test.use = "wilcox")
-    write.table(group_deg, file = paste0(outdir, "MRT_", min_gene_num, ".DEG_",plot_name,".txt"), 
+    write.table(group_deg, file = paste0(outdir, "MRT_", MIN_GENE_NUM, ".DEG_",plot_name,".txt"), 
                 quote = F, sep = "\t", col.names = T, row.names = T)
     group_deg$`log10(adj.pvalue)` <- -log10(group_deg$p_val_adj)
     col_vec <- rep("grey", dim(group_deg)[1])
@@ -118,9 +87,9 @@ for(lineage in c("TE", "EPI", "PE")){
 }
 dev.off()
 
-## sup.fig.2.c
+##------------------------sup.fig.2.c------------------------
 ## heatmap
-pdf(paste0(plot_outdir, "MRT_", min_gene_num, ".DEG_heatmap.pdf"), width = 8,height = 5)
+pdf(paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".DEG_heatmap.pdf"), width = 8,height = 5)
 for(lineage in c("TE", "EPI", "PE")){
   #gender <- "Female"
   for(gender in c("", "Female","Male")){
@@ -136,7 +105,7 @@ for(lineage in c("TE", "EPI", "PE")){
     group_deg <- FindMarkers(ST.seurat[,cell_vector], 
                              ident.1 = "ST",ident.2 = "ICSI", 
                              min.pct = 0.25, test.use = "wilcox")
-    write.table(group_deg, file = paste0(outdir, "MRT_", min_gene_num, ".",lineage,"_DEG_bothsex.txt"), 
+    write.table(group_deg, file = paste0(outdir, "MRT_", MIN_GENE_NUM, ".",lineage,"_DEG_bothsex.txt"), 
                 quote = F, sep = "\t", col.names = T, row.names = T)
     group_deg$`log10(adj.pvalue)` <- -log10(group_deg$p_val_adj)
     col_vec <- rep("grey", dim(group_deg)[1])
@@ -193,46 +162,46 @@ for(lineage in c("TE", "EPI", "PE")){
                                 max(expr_scale, na.rm = T)),
                               c("#91BFDB", "white", "#D73027"))
     
-    ht <- ComplexHeatmap::Heatmap(expr_scale[,anno_col2$cell_id],
-                                  show_row_names = T,
-                                  show_column_names = F,
-                                  row_names_gp = gpar(fontface="italic"),
-                                  column_split = anno_col2[,c("Group","Gender")],
-                                  column_gap = unit(0, "mm"),
-                                  row_split = group_deg[group_deg$color!="grey","color"],
-                                  row_gap = unit(0, "mm"),
-                                  #column_title_rot = 0,
-                                  #column_title_gp = gpar(fontsize = 10),
-                                  border = TRUE,
-                                  border_gp = gpar(lty = 1, lwd = 1),
-                                  cluster_columns = T,
-                                  cluster_column_slices = F,
-                                  cluster_row = F,
-                                  cluster_row_slices = F,
-                                  row_order = selected_row,
-                                  na_col = "lightgrey",
-                                  top_annotation = col_anno,
-                                  show_row_dend = T,
-                                  show_column_dend = F,
-                                  clustering_method_rows = "ward.D2",
-                                  clustering_distance_rows = "euclidean",
-                                  col = colors_func,
-                                  name = "ht",
-                                  column_title=plot_name,
-                                  #row_title = "Differentially expressed gene",
-                                  use_raster = T,
-                                  raster_device="CairoPNG",
-                                  raster_quality = 5)
+    ht <- Heatmap(expr_scale[,anno_col2$cell_id],
+                  show_row_names = T,
+                  show_column_names = F,
+                  row_names_gp = gpar(fontface="italic"),
+                  column_split = anno_col2[,c("Group","Gender")],
+                  column_gap = unit(0, "mm"),
+                  row_split = group_deg[group_deg$color!="grey","color"],
+                  row_gap = unit(0, "mm"),
+                  #column_title_rot = 0,
+                  #column_title_gp = gpar(fontsize = 10),
+                  border = TRUE,
+                  border_gp = gpar(lty = 1, lwd = 1),
+                  cluster_columns = T,
+                  cluster_column_slices = F,
+                  cluster_row = F,
+                  cluster_row_slices = F,
+                  row_order = selected_row,
+                  na_col = "lightgrey",
+                  top_annotation = col_anno,
+                  show_row_dend = T,
+                  show_column_dend = F,
+                  clustering_method_rows = "ward.D2",
+                  clustering_distance_rows = "euclidean",
+                  col = colors_func,
+                  name = "ht",
+                  column_title=plot_name,
+                  #row_title = "Differentially expressed gene",
+                  use_raster = T,
+                  raster_device="CairoPNG",
+                  raster_quality = 5)
     draw(ht)
   }
 }
 dev.off()
 
-## fig.2.a
+##-------------------------fig.2.a-------------------------
 ## linear regression
 data <- as.data.frame(t(FetchData(object = ST.seurat, slot = "data",vars = rownames(ST.seurat))))
 
-pdf(file = paste0(plot_outdir, "MRT_", min_gene_num, ".regression_pearson.pdf"))
+pdf(file = paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".regression_pearson.pdf"))
 for(lineage in c("TE", "EPI", "PE")){
   cor_df <- data.frame(ST=apply(data[,ST.seurat$Lineage==lineage & 
                                        ST.seurat$Group=="ST"], 1, mean),
@@ -242,7 +211,7 @@ for(lineage in c("TE", "EPI", "PE")){
   summary(model.lm)
   
   cor_df$Gene_id <- rownames(cor_df)
-  deg_df <- read.table(paste0(outdir, "MRT_", min_gene_num, ".DEG_",lineage,"_bothsex.txt"), 
+  deg_df <- read.table(paste0(outdir, "MRT_", MIN_GENE_NUM, ".DEG_",lineage,"_bothsex.txt"), 
                        row.names = 1,header = T, stringsAsFactors = F)
   deg_df$Gene_id <- rownames(deg_df)
   cor_df <- merge(cor_df, deg_df, by = "Gene_id", all.x = T)
@@ -277,7 +246,7 @@ for(lineage in c("TE", "EPI", "PE")){
 }
 dev.off()
 
-## sup.fig.2.b
+##------------------------sup.fig.2.b------------------------
 ## infer embryonic sex
 seurat.obj <- ST.seurat
 seurat.obj[["Gender"]] <- "unkown"
@@ -310,26 +279,14 @@ ggplot(data = tmp, aes(x=Embryo))+
   labs(y="Expression level")+
   theme_bw(base_size = 15)+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
-ggsave(file = paste0(plot_outdir, "MRT_", min_gene_num, ".gender_infer.pdf"),
+ggsave(file = paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".gender_infer.pdf"),
        width = 12,height = 4)
 
-## fig.2.b
+##------------------------fig.2.b------------------------
 write.csv(t(as.matrix(ST.seurat@assays$RNA@counts)), 
-          file = paste0(plot_outdir, "MRT_", min_gene_num, ".rawcount.csv"))
-#以下为python代码
-# import loompy as lp
-# import numpy as np
-# import scanpy as sc
-# x=sc.read_csv("../../code/sample.csv")
-# row_attrs = {
-#   "Gene": np.array(x.var_names),
-# }
-# col_attrs = {
-#   "CellID": np.array(x.obs_names)
-# }
-# lp.create("MRT_4000.loom",x.X.transpose(),row_attrs,
-#           col_attrs)
-scenicLoomPath <- paste0(outdir, "MRT_", min_gene_num, ".auc_mtx.loom")
+          file = paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".rawcount.csv"))
+## run the pysenic script in terminal
+scenicLoomPath <- paste0(outdir, "MRT_", MIN_GENE_NUM, ".auc_mtx.loom")
 loom <- open_loom(scenicLoomPath)
 regulonsAUC <- get_regulons_AUC(loom,column.attr.name='RegulonsAUC')
 regulon_res <- getAUC(regulonsAUC)
@@ -352,7 +309,7 @@ ggplot(data = ST.seurat@meta.data,
   theme_bw(base_size = 25)+theme(legend.position = "top",
                                  axis.ticks = element_blank(),
                                  axis.text = element_blank())
-ggsave(file=paste0(plot_outdir, "MRT_", min_gene_num, ".pyscenic_tsne_lineage.pdf"))
+ggsave(file=paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".pyscenic_tsne_lineage.pdf"))
 
 ## group
 ggplot(data = ST.seurat@meta.data, 
@@ -363,9 +320,9 @@ ggplot(data = ST.seurat@meta.data,
   theme_bw(base_size = 25)+theme(legend.position = "top",
                                  axis.ticks = element_blank(),
                                  axis.text = element_blank())
-ggsave(file=paste0(plot_outdir, "MRT_", min_gene_num, ".pyscenic_tsne_group.pdf"))
+ggsave(file=paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".pyscenic_tsne_group.pdf"))
 
-## fig.2.c
+##------------------------fig.2.c------------------------
 out.hclust <-pheatmap::pheatmap(regulon_res,
                                 cluster_rows = F, cluster_cols = T,
                                 annotation_col = anno_col,
@@ -376,7 +333,7 @@ out.hclust <-pheatmap::pheatmap(regulon_res,
                                 scale = "none",silent = F,
                                 clustering_method = "ward.D2")
 
-pdf(paste0(plot_outdir, "MRT_", min_gene_num, ".regulon_circos.pdf"),
+pdf(paste0(plot_outdir, "MRT_", MIN_GENE_NUM, ".regulon_circos.pdf"),
     height = 7, width = 7)
 circos_hclust(info = ST.seurat@meta.data, 
               hclust.out = out.hclust, 

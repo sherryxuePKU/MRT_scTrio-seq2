@@ -14,7 +14,7 @@ echo "workdir=$dir"
 echo "sample=$sp"
 
 ### Software
-bin_dir=~/tangfuchou_coe/xuexiaohui/software
+bin_dir=/path/to/your/bin
 conda_PBAT_dir=$bin_dir/miniconda3/envs/PBAT/bin
 samtools_exe=$conda_PBAT_dir/samtools
 methylDackel_exe=$conda_PBAT_dir/MethylDackel
@@ -22,7 +22,7 @@ perl_exe=$conda_PBAT_dir/perl
 bedtools_exe=$conda_PBAT_dir/bedtools
 
 ### Database
-db_dir=~/tangfuchou_coe/xuexiaohui/database
+db_dir=/path/to/your/database
 ref=$db_dir/hg38/Bismark/hg38.genome_lambda.fa
 annodir=$db_dir/hg38/Annotation/sub_group
 genebody_ref=$db_dir/hg38/Annotation/hg38.gencode.p5.allGene.bed
@@ -30,7 +30,7 @@ promoter_ref=$db_dir/hg38/Annotation/hg38.gencode.p5.allGene_promoter.bed
 element='ALR Alu ERV1 ERVK ERVL-MaLR ERVL Exon HCP ICP Intergenic Intragenic Intron L1 L2 LCP LINE LTR MIR SINE SVA'
 
 ### Script
-code_dir=~/tangfuchou_coe/xuexiaohui/script/pipeline/PBAT_xxh
+code_dir=/path/to/your/code
 tile_pl=$code_dir/Tile_Meth_Methylkit_v2.pl
 
 ### Merge group bams
