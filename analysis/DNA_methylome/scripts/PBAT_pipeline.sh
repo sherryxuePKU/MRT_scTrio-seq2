@@ -32,7 +32,7 @@ echo "tile data : $tile_dir"
 echo "cnv data : $cnv_dir"
 
 ### Software
-bin_dir=~/tangfuchou_coe/xuexiaohui/software
+bin_dir=/path/to/your/bin
 conda_PBAT_dir=$bin_dir/miniconda3/envs/PBAT/bin
 conda_R4_dir=$bin_dir/miniconda3/envs/R4.0/bin
 trim_galore=$conda_PBAT_dir/trim_galore
@@ -46,7 +46,7 @@ freec_exe=$bin_dir/FREEC-11.5/src/freec
 Rscript_exe=$conda_R4_dir/Rscript
 
 ### Script
-code_dir=~/tangfuchou_coe/xuexiaohui/script/pipeline/PBAT_xxh
+code_dir=/path/to/your/code
 changeID_pl=$code_dir/ChangeReadID.pl
 coverage_pl=$code_dir/Coverage_MethRatio.pl
 tile_pl=$code_dir/Tile_Meth_Methylkit_v2.pl
@@ -56,7 +56,7 @@ AbD_pl=$code_dir/AbsoluteDistance.pl
 merge_mtx_r=$code_dir/CpGProfile_merge.R
 
 ### Database
-db_dir=~/tangfuchou_coe/xuexiaohui/database
+db_dir=/path/to/your/database
 bismark_db=$db_dir/hg38/Bismark
 ref=$db_dir/hg38/Bismark/hg38.genome_lambda.fa
 annodir=$db_dir/hg38/Annotation/sub_group

@@ -12,7 +12,7 @@ sample <- paste0(dir, "/", batch, "_sample.xls")
 sample <- read.table(sample, stringsAsFactors = F)
 sample <- sample$V1
 
-subgroup_dir <- "~/tangfuchou_coe/xuexiaohui/database/hg38/Annotation/subgroup.txt"
+subgroup_dir <- "/path/to/your/subgroup.txt"
 subgroup <- read.table(subgroup_dir, stringsAsFactors = F)
 subgroup <- sapply(strsplit(subgroup$V1, "[.]"), "[[",2)
 #sample <- dir(path = input)
