@@ -57,7 +57,7 @@ This pipeline analyzes molecular differences between embryonic cell lineages und
 ## Data Availability
 
 - **Raw Sequencing Data**: Available at GSA for Human under accession [HRA001110](https://ngdc.cncb.ac.cn/gsa-human/browse/HRA001110)
-- **Processed Data**: Available at Zenodo under repository [17396971](10.5281/zenodo.17396971)
+- **Processed Data**: Available at [Figshare](https://doi.org/10.6084/m9.figshare.30462572.v1)
 - **Reference Datasets**: Included in [`public/`](public/) directory
 
 **Note**: Some single cells in raw sequencing data in GSA somehow encounter barcode collision. In case of confusion, exclude cells listed in [`metadata/collide_cells.txt`](metadata/collide_cells.txt). Otherwise, please reach out to expression matrices in Zenodo.
