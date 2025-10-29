@@ -21,9 +21,9 @@
 	Sample2_2.fq.gz
 
 [ Add environment variable ]
-    Seccondly, export your path of this pipeline directory as RNA_PIPELINE environment variable to you ~/.bashrc file, e.g:
-	echo "export RNA_PIPELINE=/gpfs1/tangfuchou_pkuhpc/Pipeline/02.scRNAseq_ljs/scRNA_seq" >> ~/.bashrc
-	echo "export PATH=/gpfs1/tangfuchou_pkuhpc/Pipeline/02.scRNAseq_ljs/scRNA_seq:$PATH" >> ~/.bashrc
+    Secondly, export your path of this pipeline directory as RNA_PIPELINE environment variable to you ~/.bashrc file, e.g:
+	echo "export RNA_PIPELINE=/path/to/your/pipeline" >> ~/.bashrc
+	echo "export PATH=/path/to/your/pipeline:$PATH" >> ~/.bashrc
 
 [ USAGE ]
 	Human: scRNA_work -h -u [Username] [OPTIONS]
