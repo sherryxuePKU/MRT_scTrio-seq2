@@ -1,6 +1,6 @@
 ######Reference and scripts######
-BASE_DIR=/gpfs1/tangfuchou_pkuhpc/tangfuchou_test/lujiansen
-DATABASE=${BASE_DIR}/database/CellRanger-mm10-2.1.0/
+BASE_DIR=/path/to/your/bin
+DATABASE=${BASE_DIR}/database/CellRanger-GRCh38-1.2.0
 PIPELINE=${BASE_DIR}/script/scRNA_seq
 genomeDir=${DATABASE}/star
 ref=${DATABASE}/fasta/genome.fa
@@ -10,7 +10,8 @@ trim_script=${PIPELINE}/trim_TSO_polyA.pl
 norm_script=${PIPELINE}/scRNA_Normalization.R
 
 #######Tools#######
-umi_tools=${BASE_DIR}/software/anaconda3/envs/LJS_py2/bin/umi_tools
+umi_tools=${BASE_DIR}/software/anaconda3/envs/LJS_py2/bin/umi_tools ## 0.5.4
+#STAR=${BASE_DIR}/software/cellranger-3.1.0/STAR/5dda596/STAR
 STAR=${BASE_DIR}/software/STAR-2.6.0a/bin/Linux_x86_64/STAR
 perl=/usr/bin/perl
 seqtk=${BASE_DIR}/software/seqtk-1.0-r82-dirty/seqtk
